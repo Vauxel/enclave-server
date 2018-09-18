@@ -7,7 +7,7 @@ import (
 	"log"
 	"strings"
 	"strconv"
-	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
 	"net/http"
 	"database/sql"
@@ -66,12 +66,12 @@ func InitServerKeyPair(filepath string) {
 }
 
 func EncodeKey(rawKey []byte) (encodedKey string) {
-	encodedKey = base64.StdEncoding.EncodeToString(rawKey)
+	encodedKey = hex.EncodeToString(rawKey)
 	return
 }
 
 func DecodeKey(encodedKey string) (rawKey []byte) {
-	rawKey, err := base64.StdEncoding.DecodeString(encodedKey)
+	rawKey, err := hex.DecodeString(encodedKey)
 
 	if err != nil {
 		panic(err)
@@ -117,7 +117,7 @@ func ValidateAuthentication(authparcel string, uniquedata string) (bool, *User) 
 		return false, nil
 	}
 
-	authstring, err := base64.StdEncoding.DecodeString(authparcelparts[1])
+	authstring, err := hex.DecodeString(authparcelparts[1])
 
 	if err != nil {
 		return false, nil
@@ -162,12 +162,12 @@ func ValidateAuthentication(authparcel string, uniquedata string) (bool, *User) 
 		return false, nil
 	}
 
-	return authtoken == base64.StdEncoding.EncodeToString(trueauthtoken), user
+	return authtoken == hex.EncodeToString(trueauthtoken), user
 }
 
 func GetUserFromAuthToken(authparcel string) *User {
 	authparcelparts := strings.SplitN(authparcel, " ", 2)
-	authstring, err := base64.StdEncoding.DecodeString(authparcelparts[1])
+	authstring, err := hex.DecodeString(authparcelparts[1])
 
 	if err != nil {
 		panic(err)
@@ -192,14 +192,14 @@ func AuthHandshake(w http.ResponseWriter, r *http.Request) {
 	var jsonReq AuthHandshakeRequest
 	json.NewDecoder(r.Body).Decode(&jsonReq)
 
-	senderPublicKeyRaw, err := base64.StdEncoding.DecodeString(jsonReq.PublicKey);
+	senderPublicKeyRaw, err := hex.DecodeString(jsonReq.PublicKey)
 
 	if err != nil {
 		panic(err)
 	}
 
 	if len(senderPublicKeyRaw) != cryptobox.CryptoBoxPublicKeyBytes() {
-		panic(err)
+		log.Println("Client tried to auth with invalid public key")
 	}
 
 	var userid string
